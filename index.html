@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuizFC - El Juego Definitivo de Fútbol</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .fade-in {
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .ball-animation {
+            animation: bounce 0.5s infinite alternate;
+        }
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-5px); }
+        }
+        .correct-answer {
+            background-color: #4ade80 !important;
+            color: white !important;
+        }
+        .wrong-answer {
+            background-color: #f87171 !important;
+            color: white !important;
+        }
+        .disabled-option {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        .difficulty-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <!-- Header -->
+    <header class="bg-green-700 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <a href="https://www.instagram.com/quizfcweb?igsh=bzVxNGttZzlzeWdh&utm_source=ig_contact_invite" target="_blank">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/2048px-Instagram_logo_2016.svg.png" alt="Instagram" class="h-8 w-8">
+                </a>
+                <h1 class="text-2xl font-bold">QuizFC Expert</h1>
+            </div>
+            <div class="flex items-center space-x-6">
+                <div class="flex items-center bg-green-800 px-3 py-1 rounded-full">
+                    <span class="text-yellow-300 mr-1">⚽</span>
+                    <span id="ball-count" class="font-bold">20</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Game Area -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Quiz Section -->
+        <section id="quiz-section" class="fade-in">
+            <div class="max-w-3xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h2 class="text-xl font-semibold text-gray-800">Pregunta <span id="question-number">1</span>/1000</h2>
+                            <span id="difficulty-badge" class="difficulty-badge bg-red-500 text-white">Nivel Experto</span>
+                        </div>
+                        <button id="hint-btn" class="flex items-center bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition disabled:opacity-50" disabled>
+                            <span class="mr-1">💡</span> Pista (40⚽)
+                        </button>
+                    </div>
+                    
+                    <div id="hint-area" class="hidden bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6">
+                        <p class="text-yellow-800 font-medium" id="hint-text"></p>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <p id="question-text" class="text-lg font-medium text-gray-800 mb-4">¿Qué jugador marcó el gol más rápido en la historia de la Copa Mundial de la FIFA?</p>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <button class="w-full text-left bg-gray-100 hover:bg-gray-200 px-4 py-3 rounded-lg transition answer-btn" data-correct="false">Hakan Şükür</button>
+                        <button class="w-full text-left bg-gray-100 hover:bg-gray-200 px-4 py-3 rounded-lg transition answer-btn" data-correct="true">Hakan Şükür (11 segundos)</button>
+                        <button class="w-full text-left bg-gray-100 hover:bg-gray-200 px-4 py-3 rounded-lg transition answer-btn" data-correct="false">Clint Dempsey</button>
+                        <button class="w-full text-left bg-gray-100 hover:bg-gray-200 px-4 py-3 rounded-lg transition answer-btn" data-correct="false">Bryan Robson</button>
+                    </div>
+                    
+                    <div id="feedback-area" class="hidden mt-6 p-4 rounded-lg"></div>
+                    
+                    <button id="next-btn" class="hidden w-full mt-6 bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg font-medium transition">
+                        Siguiente Pregunta
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Game State
+        const gameState = {
+            currentQuestion: 1,
+            totalQuestions: 1000,
+            balls: 20,
+            usedHints: [],
+            answeredQuestions: [],
+            questions: [
+                {
+                    id: 1,
+                    text: "¿Qué jugador marcó el gol más rápido en la historia de la Copa Mundial de la FIFA?",
+                    options: [
+                        { text: "Hakan Şükür", correct: false },
+                        { text: "Hakan Şükür (11 segundos)", correct: true },
+                        { text: "Clint Dempsey", correct: false },
+                        { text: "Bryan Robson", correct: false }
+                    ],
+                    hint: "Este jugador turco marcó el gol en el partido por el tercer puesto de la Copa Mundial de 2002 contra Corea del Sur.",
+                    difficulty: "expert"
+                },
+                {
+                    id: 2,
+                    text: "¿Qué selección ha jugado más finales de Copa Mundial sin ganar nunca el título?",
+                    options: [
+                        { text: "Hungría", correct: false },
+                        { text: "Países Bajos", correct: true },
+                        { text: "Checoslovaquia", correct: false },
+                        { text: "Suecia", correct: false }
+                    ],
+                    hint: "Esta selección europea perdió las finales de 1974, 1978 y 2010.",
+                    difficulty: "expert"
+                },
+                {
+                    id: 3,
+                    text: "¿Quién es el único jugador en ganar la Copa Mundial como jugador y como entrenador?",
+                    options: [
+                        { text: "Franz Beckenbauer", correct: false },
+                        { text: "Mário Zagallo", correct: true },
+                        { text: "Didier Deschamps", correct: false },
+                        { text: "Vicente del Bosque", correct: false }
+                    ],
+                    hint: "Este brasileño ganó como jugador en 1958 y 1962, y como entrenador en 1970.",
+                    difficulty: "expert"
+                },
+                {
+                    id: 4,
+                    text: "¿Qué jugador tiene el récord de más partidos consecutivos sin perder en la historia de LaLiga?",
+                    options: [
+                        { text: "Lionel Messi", correct: false },
+                        { text: "Andoni Zubizarreta", correct: false },
+                        { text: "Gaizka Mendieta", correct: false },
+                        { text: "Juanfran (31 partidos)", correct: true }
+                    ],
+                    hint: "Este defensa español logró este récord con el Atlético de Madrid entre 2015 y 2016.",
+                    difficulty: "expert"
+                },
+                {
+                    id: 5,
+                    text: "¿Qué equipo tiene el récord de más goles en una sola temporada de la Premier League?",
+                    options: [
+                        { text: "Manchester City (2017-18)", correct: true },
+                        { text: "Liverpool (2013-14)", correct: false },
+                        { text: "Chelsea (2009-10)", correct: false },
+                        { text: "Manchester United (1999-00)", correct: false }
+                    ],
+                    hint: "Este equipo marcó 106 goles en la temporada 2017-18 bajo la dirección de Pep Guardiola.",
+                    difficulty: "expert"
+                },
+                {
+                    id: 6,
+                    text: "¿Quién es el único jugador en ganar la Champions League con tres clubes diferentes?",
+                    options: [
+                        { text: "Clarence Seedorf", correct: true },
+                        { text: "Samuel Eto'o", correct: false },
+                        { text: "Xabi Alonso", correct: false },
+                        { text: "Cristiano Ronaldo", correct: false }
+                    ],
+                    hint: "Este mediocampista holandés ganó con Ajax, Real Madrid y AC Milan.",
+                    difficulty: "expert"
+                },
+                {
+                    id: 7,
+                    text: "¿Qué jugador tiene el récord de más asistencias en una sola temporada de LaLiga?",
+                    options: [
+                        { text: "Lionel Messi (21 en 2019-20)", correct: false },
+                        { text: "Xavi Hernández (20 en 2008-09)", correct: false },
+                        { text: "Luis Suárez (21 en 2015-16)", correct: false },
+                        { text: "Xavi Hernández (21 en 2008-09)", correct: true }
+                    ],
+                    hint: "Este centrocampista español logró este récord con el Barcelona.",
+                    difficulty: "expert"
+                },
+                {
+                    id: 8,
+                    text: "¿Qué selección mantiene el récord de más partidos consecutivos sin perder en eliminatorias mundialistas?",
+                    options: [
+                        { text: "Brasil (36 partidos)", correct: false },
+                        { text: "España (35 partidos)", correct: false },
+                        { text: "Alemania (36 partidos)", correct: true },
+                        { text: "Argentina (31 partidos)", correct: false }
+                    ],
+                    hint: "Esta racha incluye partidos desde 1985 hasta 1993 y luego desde 1996 hasta 2000.",
+                    difficulty: "expert"
+                },
+                {
+                    id: 9,
+                    text: "¿Qué jugador ha marcado goles en más ediciones diferentes de la Champions League?",
+                    options: [
+                        { text: "Cristiano Ronaldo (16 temporadas)", correct: false },
+                        { text: "Lionel Messi (16 temporadas)", correct: false },
+                        { text: "Raúl González (15 temporadas)", correct: false },
+                        { text: "Ryan Giggs (16 temporadas)", correct: true }
+                    ],
+                    hint: "Este jugador galés logró este récord con el Manchester United entre 1993 y 2014.",
+                    difficulty: "expert"
+                },
+                {
+                    id: 10,
+                    text: "¿Qué equipo tiene el récord de más títulos consecutivos en una liga europea de primer nivel?",
+                    options: [
+                        { text: "Rangers (9, Escocia)", correct: false },
+                        { text: "Dinamo Zagreb (11, Croacia)", correct: false },
+                        { text: "Rosenborg (13, Noruega)", correct: false },
+                        { text: "Lincoln Red Imps (14, Gibraltar)", correct: true }
+                    ],
+                    hint: "Este equipo dominó la Premier League de Gibraltar entre 2003 y 2016.",
+                    difficulty: "expert"
+                }
+                // More expert-level questions would be added here...
+            ]
+        };
+
+        // DOM Elements
+        const elements = {
+            questionNumber: document.getElementById('question-number'),
+            questionText: document.getElementById('question-text'),
+            answerButtons: document.querySelectorAll('.answer-btn'),
+            nextButton: document.getElementById('next-btn'),
+            hintButton: document.getElementById('hint-btn'),
+            hintArea: document.getElementById('hint-area'),
+            hintText: document.getElementById('hint-text'),
+            feedbackArea: document.getElementById('feedback-area'),
+            ballCount: document.getElementById('ball-count'),
+            quizSection: document.getElementById('quiz-section'),
+            difficultyBadge: document.getElementById('difficulty-badge')
+        };
+
+        // Initialize the game
+        function initGame() {
+            updateBallCount();
+            loadQuestion(gameState.currentQuestion);
+            
+            // Set up event listeners
+            setupEventListeners();
+        }
+
+        // Set up all event listeners
+        function setupEventListeners() {
+            // Answer buttons
+            elements.answerButtons.forEach(button => {
+                button.addEventListener('click', selectAnswer);
+            });
+
+            // Next button
+            elements.nextButton.addEventListener('click', nextQuestion);
+
+            // Hint button
+            elements.hintButton.addEventListener('click', showHint);
+        }
+
+        // Load a question by ID
+        function loadQuestion(questionId) {
+            // Get random question (for demo purposes)
+            const randomIndex = Math.floor(Math.random() * gameState.questions.length);
+            const question = gameState.questions[randomIndex];
+            
+            elements.questionNumber.textContent = questionId;
+            elements.questionText.textContent = question.text;
+            
+            // Update difficulty badge
+            if (question.difficulty === "expert") {
+                elements.difficultyBadge.className = "difficulty-badge bg-red-500 text-white";
+                elements.difficultyBadge.textContent = "Nivel Experto";
+            }
+            
+            // Update answer buttons
+            question.options.forEach((option, index) => {
+                elements.answerButtons[index].textContent = option.text;
+                elements.answerButtons[index].dataset.correct = option.correct;
+                elements.answerButtons[index].classList.remove('correct-answer', 'wrong-answer', 'disabled-option');
+                
+                // Disable if already answered
+                if (gameState.answeredQuestions.includes(question.id)) {
+                    elements.answerButtons[index].classList.add('disabled-option');
+                    if (option.correct) {
+                        elements.answerButtons[index].classList.add('correct-answer');
+                    }
+                } else {
+                    elements.answerButtons[index].classList.remove('disabled-option');
+                }
+            });
+            
+            // Update hint button
+            elements.hintButton.disabled = gameState.usedHints.includes(question.id) || gameState.balls < 40;
+            elements.hintArea.classList.add('hidden');
+            
+            // Hide next button and feedback
+            elements.nextButton.classList.add('hidden');
+            elements.feedbackArea.classList.add('hidden');
+            
+            // Store current question ID in game state
+            gameState.currentQuestionId = question.id;
+        }
+
+        // Handle answer selection
+        function selectAnswer(e) {
+            const selectedButton = e.target;
+            const isCorrect = selectedButton.dataset.correct === 'true';
+            
+            // If already answered, do nothing
+            if (gameState.answeredQuestions.includes(gameState.currentQuestionId)) {
+                return;
+            }
+            
+            // Mark as correct or wrong
+            if (isCorrect) {
+                selectedButton.classList.add('correct-answer');
+                gameState.balls += 8; // Add 8 balls for correct answer (more reward for expert level)
+                showFeedback("¡Correcto! +8⚽", "text-green-600");
+            } else {
+                selectedButton.classList.add('wrong-answer');
+                gameState.balls -= 4; // Subtract 4 balls for wrong answer (higher penalty)
+                showFeedback("Incorrecto -4⚽", "text-red-600");
+                
+                // Show correct answer
+                elements.answerButtons.forEach(button => {
+                    if (button.dataset.correct === 'true') {
+                        button.classList.add('correct-answer');
+                    }
+                });
+            }
+            
+            // Update ball count
+            updateBallCount();
+            
+            // Mark question as answered
+            gameState.answeredQuestions.push(gameState.currentQuestionId);
+            
+            // Show next button
+            elements.nextButton.classList.remove('hidden');
+            
+            // Disable all answer buttons
+            elements.answerButtons.forEach(button => {
+                button.classList.add('disabled-option');
+            });
+        }
+
+        // Show feedback message
+        function showFeedback(message, colorClass) {
+            elements.feedbackArea.textContent = message;
+            elements.feedbackArea.className = `mt-6 p-4 rounded-lg bg-${colorClass.split('-')[1]}-100 ${colorClass} font-medium`;
+            elements.feedbackArea.classList.remove('hidden');
+        }
+
+        // Move to next question
+        function nextQuestion() {
+            if (gameState.currentQuestion < gameState.totalQuestions) {
+                gameState.currentQuestion++;
+                loadQuestion(gameState.currentQuestion);
+            } else {
+                // Game completed
+                showFeedback("¡Felicidades! Has completado todas las preguntas de nivel experto.", "text-green-600");
+            }
+        }
+
+        // Show hint for current question
+        function showHint() {
+            const question = gameState.questions.find(q => q.id === gameState.currentQuestionId);
+            
+            if (!gameState.usedHints.includes(gameState.currentQuestionId) && gameState.balls >= 40) {
+                gameState.usedHints.push(gameState.currentQuestionId);
+                gameState.balls -= 40;
+                updateBallCount();
+                
+                elements.hintText.textContent = question.hint;
+                elements.hintArea.classList.remove('hidden');
+                elements.hintButton.disabled = true;
+                
+                // Update hint button text
+                elements.hintButton.innerHTML = '<span class="mr-1">💡</span> Pista usada';
+            }
+        }
+
+        // Update ball count display
+        function updateBallCount() {
+            elements.ballCount.textContent = gameState.balls;
+            
+            // Add animation if balls increased
+            if (gameState.balls > parseInt(elements.ballCount.dataset.prev || 0)) {
+                elements.ballCount.classList.add('ball-animation');
+                setTimeout(() => {
+                    elements.ballCount.classList.remove('ball-animation');
+                }, 1000);
+            }
+            
+            elements.ballCount.dataset.prev = gameState.balls;
+        }
+
+        // Initialize the game when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>
